@@ -60,17 +60,10 @@
   "Get the Spotify app to play the TRACK."
   (spotify-play-href (alist-get '(uri) track)))
 
-(defun spotify-get-track (album-href)
-  (let ((response (with-current-buffer
-                   (url-retrieve-synchronously album-href)
-                   (goto-char url-http-end-of-headers)
-                   (json-read))))
-    (aref (alist-get '(tracks items) response) 0)))
-
 (defun spotify-play-album (track)
   "Get the Spotify app to play the album for this TRACK."
-  (let ((first-track (spotify-get-track (alist-get '(album href) track))))
-    (spotify-play-href (alist-get '(uri) first-track))))
+  (let ((album-uri (alist-get '(album uri) track)))
+    (spotify-play-href album-uri)))
 
 
 (defun spotify-search (search-term)
@@ -104,12 +97,6 @@
 (defun helm-spotify-search ()
   (spotify-search-formatted helm-pattern))
 
-(defun helm-spotify-actions-for-track (actions track)
-  "Return a list of helm ACTIONS available for this TRACK."
-  `((,(format "Play Track - %s" (alist-get '(name) track))       . spotify-play-track)
-    (,(format "Play Album - %s" (alist-get '(album name) track)) . spotify-play-album)
-    ("Show Track Metadata" . pp)))
-
 ;;;###autoload
 (defvar helm-source-spotify-track-search
   '((name . "Spotify")
@@ -117,15 +104,17 @@
     (delayed)
     (multiline)
     (requires-pattern . 2)
-    (candidates-process . helm-spotify-search)
-    (action-transformer . helm-spotify-actions-for-track)))
+    (candidates . helm-spotify-search)
+    (action . (("Play Track" . spotify-play-track)
+               ("Play Album" . spotify-play-album)
+               ("Play Track" . spotify-play-track)))))
 
 ;;;###autoload
 (defun helm-spotify ()
   "Bring up a Spotify search interface in helm."
   (interactive)
   (helm :sources '(helm-source-spotify-track-search)
-	:buffer "*helm-spotify*"))
+        :buffer "*helm-spotify*"))
 
 (provide 'helm-spotify)
 ;;; helm-spotify.el ends here
